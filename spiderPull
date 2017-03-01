@@ -1,0 +1,93 @@
+## 		       python script to pull league of legends summoner names (player names) from riot games API                  ##
+## utilizes the "cassiopeia" python port of the API, in addition to numpy, make sure cassiopeia and numpy are correctly installed ##
+## 																  ## 
+## 			   cassiopeia api can be found at https://cassiopeia.readthedocs.io/en/latest/                            ##
+## 																  ## 
+## 																  ## 
+## 			  output data will be correctly formatted for use with the autoInviter 'fifth.cpp' 	          	  ##
+## 																  ## 
+## 						        written by Patrick Stewart			    		          ## 
+
+
+#!/usr/bin/env python3
+
+from cassiopeia import riotapi
+import numpy as np
+
+riotapi.set_region("NA")
+riotapi.set_api_key("RGAPI-68d57406-939c-4135-8319-df5ac4104233") #riotAPI code necessary for requests, every league of legends account has its own api key
+								  #this API code belongs to an empty account created specifically for use as a public API key
+
+class NameList:
+
+	def __init__(self,seedname,outfile):
+		self.outfile = open(outfile, 'w')
+		self.seedname = seedname
+		self.i = 0
+		self.used_names = ["rickly"] #summoner names that have already been added to the output file, no duplicates allowed
+
+	def __del__(self):
+		self.outfile.close()
+
+
+	def pull_names_from_player(self,summoner_name,games_per_seed):
+		
+			#summoner = riotapi.get_summoner_by_name(str(self.used_names[   np.random.randint(0,  len(self.used_names)  )   ]))
+
+			#try:
+			summoner = riotapi.get_summoner_by_name(summoner_name)
+			#except:
+				#print("riotAPI error handled successfully.")
+				#return
+		
+			game_list = summoner.match_list()
+			for i in range (0, min(games_per_seed, len(game_list) - 1)):
+				for player in game_list[i].match().participants:				
+					if str(player.summoner_name) not in self.used_names: 
+						self.outfile.write(str(player.summoner_name)+"\n")
+						self.used_names.append(str(player.summoner_name))
+				
+				print(str(len(self.used_names)) + " names collected.")
+
+			self.seedname = choose_random_name(game_list)
+		
+	def get_names(self,number_of_names, batch_size):
+		print("Getting your names for you, this may take several minutes...")
+		
+		while len(self.used_names) < number_of_names:
+			try:
+				self.pull_names_from_player(self.seedname, batch_size)
+			except:
+				self.seedname = self.used_names[np.random.randint(0,len(self.used_names))]
+						
+
+	def choose_random_name(game_list):
+		randomGame = np.random.randint(0,games_per_seed)
+		randomPlayer = np.random.randint(0,games_per_seed)
+		return str(game_list[randomGame].match().participants[randomPlayer].summoner_name)
+			
+
+
+seed_name = input("Enter a League of Legends summoner name to use as a seed. Names will be pulled\nin a web-like fashion, moving outwards from the provided seed name. to use the\ndefault summoner name, enter '0' -> ")
+if seed_name == "0":
+	seed_name = "Rickly" 
+
+names_to_index = int(input("How many names would you like to collect? (~50 additional names will be collected, names are collected at about 100-200 names/minute) -> "))
+
+games_per_seed = 15 #number of games examined for each summoner name, affects how fast the search fans outwards, works with other numbers
+		    #but changing this doesn't really do anything for the average user, probably isn't the optimal number to use.
+
+outputfile = input("Creating output file, enter desired filename for list of names -> ")
+
+if outputfile[-4] != '.':
+	outputfile += ".txt"
+
+print(outputfile)
+
+print("Collecting names using seed name: " +seed_name)
+activeNameList = NameList(seed_name,outputfile)
+activeNameList.get_names(names_to_index,games_per_seed)
+print("All done!")
+	
+
+
